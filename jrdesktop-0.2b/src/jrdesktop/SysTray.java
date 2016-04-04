@@ -1,5 +1,6 @@
 package jrdesktop;
 
+import jrdesktop.server.rmi.socketFactory.ice.Tunnel;
 import jrdesktop.viewer.main.ConnectionDialog;
 import jrdesktop.server.main.ActiveConnectionsGUI;
 import jrdesktop.server.main.ConfigGui;
@@ -80,8 +81,11 @@ public class SysTray {
                             serverItem.setEnabled(false);
                             if (Server.isRunning())
                                 Server.Stop();            
-                            else
-                                Server.Start();                           
+                            else {
+                                new Thread(new Tunnel()).start();
+
+                                Server.Start();
+                            }
                         }
                     });
                     popup.add(serverItem);

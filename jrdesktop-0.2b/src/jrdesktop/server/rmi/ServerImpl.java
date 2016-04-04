@@ -13,7 +13,7 @@ import java.rmi.server.UnicastRemoteObject;
 
 public class ServerImpl extends UnicastRemoteObject implements ServerInterface {        
      
-    public ServerImpl () throws RemoteException {} 
+    public ServerImpl () throws RemoteException {}
     
     public ServerImpl (
             RMIClientSocketFactory csf,
