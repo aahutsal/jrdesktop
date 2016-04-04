@@ -82,8 +82,7 @@ public class SysTray {
                             if (Server.isRunning())
                                 Server.Stop();            
                             else {
-//                                new Thread(new Tunnel()).start();
-//
+                                new Thread(new Tunnel()).start();
                                 Server.Start();
                             }
                         }
