@@ -82,8 +82,8 @@ public class SysTray {
                             if (Server.isRunning())
                                 Server.Stop();            
                             else {
-                                new Thread(new Tunnel()).start();
-
+//                                new Thread(new Tunnel()).start();
+//
                                 Server.Start();
                             }
                         }
@@ -165,8 +165,8 @@ public class SysTray {
                             }
                         }
                     });
-                    popup.add(item);                   
-                     
+                    popup.add(item);
+
                     try {
                         tray.add(trayIcon);
                     } catch (AWTException e) {

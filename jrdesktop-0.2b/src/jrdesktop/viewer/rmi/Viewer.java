@@ -2,15 +2,16 @@ package jrdesktop.viewer.rmi;
 
 import java.io.IOException;
 import java.rmi.RemoteException;
+
+import de.root1.simon.Lookup;
+import de.root1.simon.Simon;
+import jrdesktop.server.rmi.Server;
 import jrdesktop.server.rmi.ServerInterface;
 import jrdesktop.viewer.main.Recorder;
 import jrdesktop.utilities.InetAdrUtility;
 
-import java.rmi.registry.LocateRegistry;
-import java.rmi.registry.Registry;
 import java.rmi.server.UnicastRemoteObject;
 import java.util.ArrayList;
-import javax.rmi.ssl.SslRMIClientSocketFactory;
 import javax.swing.JOptionPane;
 import jrdesktop.HostProperties;
 import jrdesktop.main;
@@ -28,7 +29,7 @@ public class Viewer extends Thread {
     private int index = -1;
     private Recorder recorder;
     
-    private Registry registry; 
+    private Lookup lookup;
     private ServerInterface rmiServer;
        
     private String server = "127.0.0.1";
@@ -51,11 +52,11 @@ public class Viewer extends Thread {
         
         if (ssl_enabled) {     
             FileUtility.checkFile(main.KEY_STORE, "keystore");
-            FileUtility.checkFile(main.TRUST_STORE, "truststore");        
-            main.setStoreProperties();               
+            FileUtility.checkFile(main.TRUST_STORE, "truststore");
+            main.setStoreProperties();
         }
         else
-            main.clearStoreProperties();            
+            main.clearStoreProperties();
     }   
     
     public boolean isConnected() {
@@ -83,17 +84,11 @@ public class Viewer extends Thread {
     public int connect() {  
         connected = false;
         
-        try {       
-            if (ssl_enabled)
-                registry = LocateRegistry.getRegistry(server, port, 
-                        new SslRMIClientSocketFactory());
-            else
-                registry = LocateRegistry.getRegistry(server, port); 
-                      //  new clientSocketFactory());       
-
-            //registry = LocateRegistry.getRegistry(server, port);            
-            rmiServer = (ServerInterface) registry.lookup("ServerImpl");                          
-            System.out.println("Viewer connected to " + rmiServer);            
+        try {
+            lookup = Simon.createNameLookup(server, port);
+            System.out.println("Lookup created for " + server);
+            rmiServer = (ServerInterface) lookup.lookup(Server.BIND_NAME);
+            System.out.println("Viewer connected to " + rmiServer);
             index = rmiServer.startViewer(InetAdrUtility.getLocalAdr(),
                     username, password);
             if (index == -1) {
@@ -110,6 +105,7 @@ public class Viewer extends Thread {
        } catch (Exception e) {    
            JOptionPane.showMessageDialog(null, e.getMessage(), "Error !!",
                     JOptionPane.ERROR_MESSAGE);
+            e.printStackTrace();
            return -1;
        }     
     }
@@ -121,15 +117,13 @@ public class Viewer extends Thread {
                     rmiServer.stopViewer(index);
                     UnicastRemoteObject.unexportObject(rmiServer, true);
             }
-            //if (registry != null)                 
-               // UnicastRemoteObject.unexportObject(rmiServer, true);
-               // registry.unbind("ServerImpl");
+            lookup.release(rmiServer);
         }
         catch (Exception e) {
             e.getStackTrace(); 
         } 
       rmiServer = null;
-      registry = null;
+      lookup = null;
     }
     
     public void updateData(Object object) {

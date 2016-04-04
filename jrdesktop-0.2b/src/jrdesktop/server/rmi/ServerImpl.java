@@ -1,5 +1,7 @@
 package jrdesktop.server.rmi;
 
+import de.root1.simon.annotation.SimonRemote;
+
 import java.net.InetAddress;
 import java.rmi.RemoteException;
 import java.rmi.server.RMIClientSocketFactory;
@@ -10,8 +12,8 @@ import java.rmi.server.UnicastRemoteObject;
  * ServerImpl.java
  * @author benbac
  */
-
-public class ServerImpl extends UnicastRemoteObject implements ServerInterface {        
+@SimonRemote(value = {ServerInterface.class})
+public class ServerImpl extends UnicastRemoteObject implements ServerInterface {
      
     public ServerImpl () throws RemoteException {}
     

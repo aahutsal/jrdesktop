@@ -8,16 +8,14 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.net.InetAddress;
-import java.rmi.registry.LocateRegistry;
-import java.rmi.registry.Registry;
-import java.rmi.server.UnicastRemoteObject;
 import java.util.ArrayList;
 import java.util.Hashtable;
-import javax.rmi.ssl.SslRMIClientSocketFactory;
 import javax.rmi.ssl.SslRMIClientSocketFactory;
 import javax.rmi.ssl.SslRMIServerSocketFactory;
 import javax.swing.JOptionPane;
 
+import de.root1.simon.Registry;
+import de.root1.simon.Simon;
 import jrdesktop.ConnectionInfos;
 import jrdesktop.HostProperties;
 import jrdesktop.SysTray;
@@ -36,7 +34,9 @@ import jrdesktop.utilities.ZipUtility;
  */
 
 public class Server extends Thread {
-    
+
+    public static String BIND_NAME = "ServerImpl";
+
     private static boolean running = false;
     
     private static Registry registry;
@@ -76,7 +76,7 @@ public class Server extends Thread {
                 serverImpl = new ServerImpl(
                         new MultihomeRMIClientSocketFactory(
                             new SslRMIClientSocketFactory()),
-                        new SslRMIServerSocketFactory(null, null, true));                         
+                        new SslRMIServerSocketFactory(null, null, true));
             else if (ServerConfig.ssl_enabled && !ServerConfig.multihomed_enabled)
                 serverImpl = new ServerImpl(
                         new SslRMIClientSocketFactory(), 
@@ -90,18 +90,15 @@ public class Server extends Thread {
                 serverImpl = new ServerImpl();
                        // new clientSocketFactory(),  
                       //  new serverSocketFactory());                         
-            
-            if (ServerConfig.ssl_enabled)
-                registry = LocateRegistry.createRegistry(ServerConfig.server_port, 
-                        new SslRMIClientSocketFactory(),
-                        new SslRMIServerSocketFactory(null, null, true)); 
-            else
-                registry = LocateRegistry.createRegistry(ServerConfig.server_port); 
-                      //  new clientSocketFactory(),  
-                      //  new serverSocketFactory()); 
-            
-            registry.rebind("ServerImpl", serverImpl); 
-            
+
+            System.out.println("Simon is creating a registry on port "+ ServerConfig.server_port);
+            registry = Simon.createRegistry(ServerConfig.server_port);
+            System.out.println("Registry is created. "+ registry.toString());
+            registry.start(); // TODO check exception
+            System.out.println("Registry started.");
+            registry.bind(Server.BIND_NAME, serverImpl);
+            System.out.println("ServerImpl is bound.");
+
         } catch (Exception e) {                  
             e.getStackTrace();
             Stop();          
@@ -127,8 +124,8 @@ public class Server extends Thread {
             SysTray.updateServerStatus(SysTray.CONNECTION_FAILED);
         try {            
             if (registry != null) {
-                UnicastRemoteObject.unexportObject(registry, true);            
-                //registry.unbind("ServerImpl");
+                registry.stop();
+                registry.unbind(Server.BIND_NAME);
             }
         } catch (Exception e) {
             e.getStackTrace();

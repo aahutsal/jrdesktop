@@ -6,9 +6,15 @@
     <description>Builds, tests, and runs the project jrdesktop.</description>
     <import file="nbproject/build-impl.xml"/>
 
+    <path id="classpath">
+        <fileset dir="lib" includes="*.jar"/>
+    </path>
+
     <target name="compile">
         <mkdir dir="target/classes"/>
-        <javac source="1.7" target="1.7"  srcdir="src" destdir="target/classes"/>
+        <javac source="1.7" target="1.7"  srcdir="src" destdir="target/classes">
+            <classpath refid="classpath" />
+        </javac>
         <copydir src="src/jrdesktop/images" dest="target/classes/jrdesktop/images"/>
     </target>
 
@@ -16,6 +22,7 @@
         <mkdir dir="target/jar"/>
         <jar destfile="target/jar/jrdesktop.jar" basedir="target/classes">
             <manifest>
+                <attribute name="Class-Path" value="lib"/>
                 <attribute name="Main-Class" value="jrdesktop.main"/>
             </manifest>
         </jar>
