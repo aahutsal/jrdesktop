@@ -294,6 +294,7 @@ public class ViewerGUI extends javax.swing.JFrame {
                 jComboBoxColorQualityItemStateChanged(evt);
             }
         });
+        jComboBoxColorQuality.setSelectedIndex(COLOR_256);
         jToolBar2.add(jComboBoxColorQuality);
         jToolBar2.add(jSeparator6);
 

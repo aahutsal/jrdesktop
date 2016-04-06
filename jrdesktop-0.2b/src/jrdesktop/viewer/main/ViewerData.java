@@ -24,7 +24,7 @@ public class ViewerData {
     
     private float screenScale = 1.0f;
 
-    private int colorQuality = BufferedImage.TYPE_INT_ARGB;
+    private int colorQuality = BufferedImage.TYPE_BYTE_INDEXED;
     
     private boolean clipboardTransfer = true;
     
