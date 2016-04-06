@@ -86,7 +86,7 @@ public class Viewer extends Thread {
         
         try {
             lookup = Simon.createNameLookup(server, port);
-            System.out.println("Lookup created for " + server);
+            System.out.println("Lookup created for " + server + ":" + port);
             rmiServer = (ServerInterface) lookup.lookup(Server.BIND_NAME);
             System.out.println("Viewer connected to " + rmiServer);
             index = rmiServer.startViewer(InetAdrUtility.getLocalAdr(),

@@ -12,7 +12,6 @@ import java.nio.channels.spi.SelectorProvider;
 import java.util.*;
 
 public class NioProxy implements Runnable {
-	public static final int INTERNAL_PORT = 59999;
 	// The host:port combination to listen on
 	private InetAddress hostAddress;
 	private int port;
@@ -29,10 +28,12 @@ public class NioProxy implements Runnable {
 	private PipeWorker worker;
 
 	// A list of PendingChange instances
-	private List pendingChanges = new LinkedList();
+	private List<ChangeRequest> pendingChanges = new LinkedList<ChangeRequest>();
 
 	// Maps a SocketChannel to a list of ByteBuffer instances
-	private Map pendingData = new HashMap();
+	private Map<SocketChannel, List> pendingData = new HashMap();
+
+	public static final List<SocketChannel> socketChannels = Collections.synchronizedList(new ArrayList<SocketChannel>());
 
 	public NioProxy(InetAddress hostAddress, int port, PipeWorker worker) throws IOException {
 		this.hostAddress = hostAddress;
@@ -72,41 +73,50 @@ public class NioProxy implements Runnable {
 						switch (change.type) {
 						case ChangeRequest.CHANGEOPS:
 							SelectionKey key = change.socket.keyFor(this.selector);
-							key.interestOps(change.ops);
+                            if (key != null) {
+                                key.interestOps(change.ops);
+                            }
 						}
 					}
 					this.pendingChanges.clear();
 				}
 
 				// Wait for an event one of the registered channels
+//                System.out.println("NioProxy: waiting for selector key");
 				this.selector.select();
 
 				// Iterate over the set of keys for which events are available
-				Iterator selectedKeys = this.selector.selectedKeys().iterator();
-				while (selectedKeys.hasNext()) {
+                Iterator selectedKeys = this.selector.selectedKeys().iterator();
+                while (selectedKeys.hasNext()) {
 					SelectionKey key = (SelectionKey) selectedKeys.next();
 					selectedKeys.remove();
 
 					if (!key.isValid()) {
+                        System.out.println("NioProxy: key is invalid");
+                        key.cancel();
 						continue;
 					}
 
 					// Check what event is available and deal with it
 					if (key.isAcceptable()) {
-						this.accept(key);
+//                        System.out.println("NioProxy: key is acceptable");
+                        this.accept(key);
 					} else if (key.isReadable()) {
-						this.read(key);
-					} else if (key.isWritable()) {
-						this.write(key);
-					}
+//                        System.out.println("NioProxy: key is readable");
+                        this.read(key);
+                    } else if (key.isWritable()) {
+//                        System.out.println("NioProxy: key is writable");
+                        this.write(key);
+                    }
 				}
 			} catch (Exception e) {
-				e.printStackTrace();
+                System.out.println("NioProxy: Server is down!");
+                e.printStackTrace();
+                return;
 			}
 		}
 	}
 
-	public static final List<SocketChannel> socketChannels = Collections.synchronizedList(new ArrayList<SocketChannel>());
 	private void accept(SelectionKey key) throws IOException {
 		// For an accept to be pending the channel must be a server socket channel.
 		ServerSocketChannel serverSocketChannel = (ServerSocketChannel) key.channel();
@@ -124,33 +134,33 @@ public class NioProxy implements Runnable {
 	}
 
 	private void read(SelectionKey key) throws IOException {
-		SocketChannel socketChannel = (SocketChannel) key.channel();
+        SocketChannel socketChannel = (SocketChannel) key.channel();
 
-		// Clear out our read buffer so it's ready for new data
-		this.readBuffer.clear();
+        // Clear out our read buffer so it's ready for new data
+        this.readBuffer.clear();
 
-		// Attempt to read off the channel
-		int numRead;
-		try {
-			numRead = socketChannel.read(this.readBuffer);
-		} catch (IOException e) {
-			// The remote forcibly closed the connection, cancel
-			// the selection key and close the channel.
-			key.cancel();
-			socketChannel.close();
-			return;
-		}
+        // Attempt to read off the channel
+        int numRead;
+        try {
+            numRead = socketChannel.read(this.readBuffer);
+        } catch (IOException e) {
+            // The remote forcibly closed the connection, cancel
+            // the selection key and close the channel.
+            key.cancel();
+            socketChannel.close();
+            return;
+        }
 
-		if (numRead == -1) {
-			// Remote entity shut the socket down cleanly. Do the
-			// same from our end and cancel the channel.
-			key.channel().close();
-			key.cancel();
-			return;
-		}
+        if (numRead == -1) {
+            // Remote entity shut the socket down cleanly. Do the
+            // same from our end and cancel the channel.
+            key.channel().close();
+            key.cancel();
+            return;
+        }
 
-		// Hand the data off to our worker thread
-		this.worker.processData(this, socketChannel, this.readBuffer.array(), numRead);
+        // Hand the data off to our worker thread
+        this.worker.processData(this, socketChannel, this.readBuffer.array(), numRead);
 	}
 
 	private void write(SelectionKey key) throws IOException {
@@ -191,7 +201,7 @@ public class NioProxy implements Runnable {
 		InetSocketAddress isa = new InetSocketAddress(this.hostAddress, this.port);
 		serverChannel.socket().bind(isa);
 
-		// Register the server socket channel, indicating an interest in 
+		// Register the server socket channel, indicating an interest in
 		// accepting new connections
 		serverChannel.register(socketSelector, SelectionKey.OP_ACCEPT);
 
@@ -201,7 +211,9 @@ public class NioProxy implements Runnable {
 	public static void main(String[] args) {
 		try {
 			PipeWorker worker = new PipeWorker();
-			new Thread(worker).start();
+            Thread workerThread = new Thread(worker);
+            workerThread.setName("PipeWorkerThread");
+            workerThread.start();
 			new Thread(new NioProxy(null, Integer.parseInt(System.getenv("GW_PORT")), worker)).start();
 		} catch (IOException e) {
 			e.printStackTrace();

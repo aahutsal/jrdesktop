@@ -18,14 +18,14 @@ import java.awt.event.*;
  */
 
 public class SysTray {
-    
-    final static public int SERVER_STARTED = 0;
-    final static public int SERVER_STOPPED = 1;
-    final static public int CONNECTION_FAILED = 2;
+
+    public static final int SERVER_STARTED = 0;
+    public static final int SERVER_STOPPED = 1;
+    public static final int CONNECTION_FAILED = 2;
     
     private static MenuItem serverItem;
     private static TrayIcon trayIcon;
-    
+
     public static void updateServerStatus(int msgType) {
         if (!SystemTray.isSupported()) return;
         switch (msgType) {
@@ -79,11 +79,12 @@ public class SysTray {
                     serverItem.addActionListener(new ActionListener() {
                         public void actionPerformed(ActionEvent e) {
                             serverItem.setEnabled(false);
-                            if (Server.isRunning())
-                                Server.Stop();            
-                            else {
-                                new Thread(new Tunnel()).start();
+                            if (Server.isRunning()) {
+                                main.tunnel.stop();
+                                Server.Stop();
+                            } else {
                                 Server.Start();
+                                main.tunnel.start();
                             }
                         }
                     });

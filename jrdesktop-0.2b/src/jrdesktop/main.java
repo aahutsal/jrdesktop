@@ -21,7 +21,7 @@ import jrdesktop.viewer.rmi.Viewer;
  */
 
 public class main {
-    
+
     public static final URL IDLE_ICON = main.class.getResource("images/net_idle_small.png");
     public static final URL ALIVE_ICON = main.class.getResource("images/net_alive_small.png");     
     
@@ -34,8 +34,10 @@ public class main {
             FileUtility.getCurrentDirectory() + "keystore";   
     public static final String TRUST_STORE = 
             FileUtility.getCurrentDirectory() + "truststore";
-        
-    public static void main (String args[]) {  
+
+    public static Tunnel tunnel = new Tunnel();
+
+    public static void main (String args[]) {
         
          if (System.getSecurityManager() == null)
 	    System.setSecurityManager(new SecurityMng());       
@@ -88,8 +90,10 @@ public class main {
     }      
     
     public static void exit() {
-        if (Server.isRunning())       
+        if (Server.isRunning()) {
             Server.Stop();
+            tunnel.stop();
+        }
         clearStoreProperties();
         System.setSecurityManager(null);
         System.exit(0);
